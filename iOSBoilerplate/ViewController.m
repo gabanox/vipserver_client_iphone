@@ -10,6 +10,7 @@
 #import "BackgroundLayer.h"
 #import "UIStyler.h"
 #import "Credential.h"
+#import "VIPIssuer.h"
 
 #define CELL_HEIGHT 40
 #define CELL_NUMBER_OF_ROWS 2
@@ -172,14 +173,18 @@ typedef enum {
 //        
 //        [loginMessage show];
         NSLog(@"%@", msg);
+            
+        VIPIssuer *issuer = [[VIPIssuer alloc] init];
+        NSString *activationCode = nil;
         
-        NSString *oneTimePassword = @"1341234134";
-        NSString *tokenId = @"XXX1341234";
+        activationCode = [issuer authenticateWithUsernameThenRequestAnActivationCode:self.username.text password:self.password.text];
         
-        Credential *credential = [[Credential alloc]
-                                  initCredentialWithToken:tokenId otp:oneTimePassword userName:self.username.text password:self.password.text];
-        
-        
+        if(activationCode){
+            
+            //validate credentials
+        }else {
+            //authentication failed!
+        }
         
         [self.spinner startAnimating];
     }else {
