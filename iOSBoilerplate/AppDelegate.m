@@ -9,11 +9,16 @@
 #import "AppDelegate.h"
 #import "ViewController.h"
 #import "Credential.h"
+#import "Constants.h"
 
 @implementation AppDelegate
 
 @synthesize window = _window;
 @synthesize viewController = _viewController;
+@synthesize credentialId;
+@synthesize secret;
+@synthesize creationTime;
+@synthesize credential;
 
 - (void)dealloc
 {
@@ -60,6 +65,44 @@
 - (void)applicationWillTerminate:(UIApplication *)application
 {
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+}
+
+
+#pragma mark Application support methods
+
+- (Status *) getCredentialStatusWithCredentialPrefix:(NSString *) prefix activationCode:(NSString *) activationCode
+{
+
+    Provisioner *provisioner = [[Provisioner alloc] initWithURL:VIP_SERVICES_AUTHENTICATION_URL];
+    Credential *c = nil;
+    Status *status = [provisioner getCredential:prefix activationCode:activationCode credential:&c];
+    [provisioner release];
+    if(c != nil){
+        self.credentialId = c.credId;
+        self.secret = c.sharedSecret;
+        self.creationTime = c.creationTime;
+        
+        [c release];
+        [self generateSecurityCode];
+        [self performSelector:@selector(generateSecurityCode) withObject:nil afterDelay:30];
+        [self performSelector:@selector(generateSecurityCode) withObject:nil afterDelay:60];
+        
+    }
+    else{
+//        NSLog(@"Codigo del error: %@", status.statusCode);
+//        NSLog(@"Mensaje de error: %@", status.statusMessage);
+    }
+    return status;
+}
+
+- (void)generateSecurityCode{
+	if(self.credential == nil){
+		Credential *temp =  [[Credential alloc] initWithValues:self.credentialId secret:self.secret creationTime:self.creationTime];
+		self.credential = temp;
+		[temp release];
+		NSLog(@"Credential id :%@",credential.credId);
+	}
+	NSLog(@"Security Code : %@",[self.credential getSecurityCode]);
 }
 
 

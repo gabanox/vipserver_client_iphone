@@ -6,11 +6,13 @@
 //  Copyright (c) 2012 HipermediaSoft. All rights reserved.
 //
 
+#import "AppDelegate.h"
 #import "ViewController.h"
 #import "BackgroundLayer.h"
 #import "UIStyler.h"
-#import "Credential.h"
 #import "VIPIssuer.h"
+#import "Constants.h"
+#import "Provisioner.h"
 
 #define CELL_HEIGHT 40
 #define CELL_NUMBER_OF_ROWS 2
@@ -37,7 +39,7 @@ typedef enum {
 
 - (BOOL) validate: (UITextField *)aTextField field: (TEXTFIELDS) aField;
 
-
+@property (nonatomic, retain) AppDelegate *appDelegate;
 @property (nonatomic, retain) IBOutlet UITableView *loginTable;
 @property (nonatomic, retain) UIButton *loginButton;
 @property (nonatomic, retain) IBOutlet UIView *headerView;
@@ -46,20 +48,20 @@ typedef enum {
 @property (nonatomic, retain) UITextField *password;
 @property (nonatomic, retain) UITapGestureRecognizer *tapGesture;
 @property (nonatomic, retain) UIActivityIndicatorView *spinner;
-@property (nonatomic, retain) UIAlertView *loginMessage;
+@property (nonatomic, retain) UIAlertView *statusMessage;
 
 @end
 
 @implementation ViewController
 
+@synthesize appDelegate;
 @synthesize loginTable = _loginTable;
 @synthesize headerView = _headerView;
 @synthesize tableHeader = _tableHeader;
 @synthesize loginButton = _loginButton;
 @synthesize username  = _username, password = _password;
 @synthesize tapGesture  = _tapGesture;
-//@synthesize spinner = _spinner;
-@synthesize loginMessage = _loginMessage;
+@synthesize statusMessage = _statusMessage;
 
 #pragma mark Encapsulation
 
@@ -69,7 +71,7 @@ typedef enum {
         _spinner = [[[UIActivityIndicatorView alloc] 
                          initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite] autorelease];
     }
-    NSLog(@"spinner count : %i %s" , [_spinner retainCount], __PRETTY_FUNCTION__ );
+//    NSLog(@"spinner count : %i %s" , [_spinner retainCount], __PRETTY_FUNCTION__ );
     return _spinner;
 }
 
@@ -142,13 +144,13 @@ typedef enum {
 
 - (void) loginButtonAction:(id)sender
 {
-    NSLog(@"user name count : %i %s" , [self.username retainCount], __PRETTY_FUNCTION__ );
+//    NSLog(@"user name count : %i %s" , [self.username retainCount], __PRETTY_FUNCTION__ );
 
     [self.loginButton addSubview:self.spinner];
     [self.spinner setCenter:CGPointMake(self.loginButton.bounds.size.width - 30, self.loginButton.bounds.size.height / 2)];
     BOOL valid = NO;
-    NSString *msg = @"";
-    NSLog(@"%@", self.username.text);     
+    NSMutableString *msg = nil;
+//    NSLog(@"%@", self.username.text);     
     
     if([self validate:self.username field:USER_NAME]){
         valid = NO;
@@ -165,36 +167,42 @@ typedef enum {
     }
     
     if(valid){ //OKAY
-        NSLog(@"username count %i", [self.username retainCount]);        
-        msg = [NSString stringWithFormat:@"\nUsuario : %@ Contraseña: %@", self.username.text, self.password.text];
-        NSLog(@"username count %i", [self.username retainCount]);        
-//       loginMessage = [[UIAlertView alloc] 
-//                       initWithTitle:@"Login" message:msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];        
-//        
-//        [loginMessage show];
-        NSLog(@"%@", msg);
+//        NSLog(@"username count %i", [self.username retainCount]);        
+        msg = [NSMutableString stringWithFormat:@"\nUsuario : %@ Contraseña: %@", self.username.text, self.password.text];
+//        NSLog(@"username count %i", [self.username retainCount]);        
+//        NSLog(@"%@", msg);
             
         VIPIssuer *issuer = [[VIPIssuer alloc] init];
         NSString *activationCode = nil;
         
-        activationCode = [issuer authenticateWithUsernameThenRequestAnActivationCode:self.username.text password:self.password.text];
-        
+        activationCode = [issuer requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
+
+        NSLog(@"Codigo de activacion : %@", activationCode);
         if(activationCode){
             
-            //validate credentials
+            Status *status = nil;
+
+            status = [self.appDelegate
+                                getCredentialStatusWithCredentialPrefix:CREDENTIAL_PREFIX activationCode:activationCode];
+
+            msg = [NSString stringWithFormat:@"Codigo de activacion: %@", activationCode];
+            
+            self.statusMessage = [[UIAlertView alloc]
+                             initWithTitle:@"VIP Issuer" message:msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+            
+            [self.spinner stopAnimating];
         }else {
             //authentication failed!
         }
         
         [self.spinner startAnimating];
     }else {
-        self.loginMessage = [[UIAlertView alloc] 
+        self.statusMessage = [[UIAlertView alloc] 
                         initWithTitle:@"Error" message:msg delegate:self cancelButtonTitle:@"Corregir" otherButtonTitles:nil];        
      
-        [self.loginMessage show];
     }
     
-    
+    [self.statusMessage show];
 
 }
 
@@ -213,6 +221,8 @@ typedef enum {
 {
     [super viewDidLoad];
         
+    appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+    
     self.loginButton = [[UIButton alloc] initWithFrame:CGRectMake(33, 239, 256, 37)];
     [self.loginButton setTitle:@"Ingresar" forState:UIControlStateNormal];
     [self.loginButton setTitleColor:[UIColor grayColor] forState:UIControlStateHighlighted];
@@ -256,7 +266,7 @@ typedef enum {
     [_username release];
     [_password release];
     [_tapGesture release];
-    [_loginMessage release];
+    [_statusMessage release];
     [_spinner release];
     [super dealloc];
 }
@@ -317,9 +327,9 @@ typedef enum {
 
 - (void) tapAnyWhereAction: (UIGestureRecognizer *) gesture
 {
-        NSLog(@"username count %i", [self.username retainCount]);    
+//        NSLog(@"username count %i", [self.username retainCount]);    
     [self.username resignFirstResponder];
-        NSLog(@"username count %i", [self.username retainCount]);    
+//        NSLog(@"username count %i", [self.username retainCount]);    
     [self.password resignFirstResponder];
 }
 
@@ -328,26 +338,26 @@ typedef enum {
 
 - (void) textFieldDidBeginEditing:(UITextField *)textField
 {
-        NSLog(@"username count %i", [self.username retainCount]);    
+//        NSLog(@"username count %i", [self.username retainCount]);    
     textField.text = self.username.text;
-        NSLog(@"username count %i", [self.username retainCount]);    
-    NSLog(@"textFieldDidBeginEditing %@", textField.text);
-    NSLog(@"%i", [textField retainCount]);
-    [textField setClearButtonMode:UITextFieldViewModeWhileEditing];           
+//        NSLog(@"username count %i", [self.username retainCount]);    
+//    NSLog(@"textFieldDidBeginEditing %@", textField.text);
+//    NSLog(@"%i", [textField retainCount]);
+    [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
 }
 
 - (void)textFieldDidEndEditing:(UITextField *)textField
 {
-        NSLog(@"textFieldDidEndEditing %@", textField.text);
-        NSLog(@"%i", [textField retainCount]);
+//        NSLog(@"textFieldDidEndEditing %@", textField.text);
+//        NSLog(@"%i", [textField retainCount]);
     if([textField.text isEqualToString:@""]){
 
         textField.textColor = [UIColor lightGrayColor];
         
         if(textField.tag == USERNAME_TAG){
-        NSLog(@"username count %i", [self.username retainCount]);            
-            self.username.text = @"Usuario";   
-        NSLog(@"username count %i", [self.username retainCount]);            
+//        NSLog(@"username count %i", [self.username retainCount]);            
+            self.username.text = @"Usuario";
+//        NSLog(@"username count %i", [self.username retainCount]);            
         }else if(textField.tag == PASSWORD_TAG){
             self.password.text = @"Contraseña";
         }
@@ -355,9 +365,9 @@ typedef enum {
     }else {
         
 //        if(textField.tag == USERNAME_TAG){
-        NSLog(@"username count %i", [self.username retainCount]);        
+//        NSLog(@"username count %i", [self.username retainCount]);        
             [textField retain];
-        NSLog(@"username count %i", [self.username retainCount]);        
+//        NSLog(@"username count %i", [self.username retainCount]);        
             
 //        }else if(textField.tag == PASSWORD_TAG){
 //            
@@ -396,9 +406,9 @@ typedef enum {
         
         switch (EditedTextField) {
             case USER_NAME:
-        NSLog(@"username count %i", [self.username retainCount]);                
+//        NSLog(@"username count %i", [self.username retainCount]);                
                 [self.username becomeFirstResponder];
-        NSLog(@"username count %i", [self.username retainCount]);                
+//        NSLog(@"username count %i", [self.username retainCount]);                
                 break;
                 
             case PASSWORD:
@@ -417,7 +427,7 @@ typedef enum {
 - (BOOL) validate: (UITextField *)aTextField field: (TEXTFIELDS) aField
 {
     BOOL valid;
-        NSLog(@"username count %i", [self.username retainCount]);    
+//        NSLog(@"username count %i", [self.username retainCount]);    
     switch (aField) {
         case USER_NAME:
             valid = aTextField.text.length > 0 && ![aTextField.text isEqualToString:@"Usuario"] ? YES : NO;

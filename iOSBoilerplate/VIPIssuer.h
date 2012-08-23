@@ -11,6 +11,5 @@
 @interface VIPIssuer : NSObject
 
 -(id) init;
--(NSString *) authenticateWithUsernameThenRequestAnActivationCode: (NSString *) aUsername password:(NSString *) aPassword;
-
+-(NSString *) requestActivationCodeUsingCredentials:(NSString *) aUsername password:(NSString *) aPassword;
 @end

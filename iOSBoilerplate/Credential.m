@@ -33,7 +33,7 @@
 -(NSString *)getSecurityCode{
 	NSString *securityCode = nil;
 	char response[10];
-	if(sharedSecret != nil){    
+	if(sharedSecret != nil){
 		const char *temp = [sharedSecret UTF8String];
 		int secretSize = strlen(temp);
 		ITEM input,output;

@@ -2,7 +2,7 @@
 
 @class Credential,Status;
 
-@interface Provisioner : NSObject {
+@interface Provisioner : NSObject<NSURLConnectionDelegate> {
 @private
 	NSString *provisionURL;
 }
