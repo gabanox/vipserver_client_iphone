@@ -17,4 +17,5 @@ extern NSString * const MyGlobalConstant;
 #define VIP_ISSUER_PROVISIONING_ENDPOINT_URL            @"http://localhost:8080/vipserverendpoint/Validation.wsdl"
 //#define CREDENTIAL_PREFIX                               @"QATP"
 #define CREDENTIAL_PREFIX                               @"QAMT"
+#define CREDENTIAL_PROVISIONED_SUCCESSSFULLY            @"0000"
 @end

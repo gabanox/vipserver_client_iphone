@@ -19,12 +19,13 @@
 @private
 	NSString *statusMessage;
 	NSString *statusCode;
+    Credential *credential;
 }
 
 - (id)initWithStatusCode:(NSString *)code message:(NSString *)message;
 
 @property (nonatomic,retain) NSString *statusMessage;
 @property (nonatomic,retain) NSString *statusCode;
-
+@property (nonatomic, retain) Credential *credential;
 
 @end

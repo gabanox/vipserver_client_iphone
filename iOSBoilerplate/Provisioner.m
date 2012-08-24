@@ -43,18 +43,6 @@ NSString *kSuccessCode =  @"0000";
 	//setting up the body:
 	NSMutableData *postBody = [NSMutableData data];
   
-//    [postBody appendData:[[NSString stringWithString:@"<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:vip=\"http://www.verisign.com/2006/08/vipservice\">"] dataUsingEncoding:NSUTF8StringEncoding]];
-//    
-//    [postBody appendData:[[NSString stringWithString:@"<soapenv:Header/>"] dataUsingEncoding:NSUTF8StringEncoding]];
-//    [postBody appendData:[[NSString stringWithString:@"<soapenv:Body>"] dataUsingEncoding:NSUTF8StringEncoding]];
-//    [postBody appendData:[[NSString stringWithString:@"<vip:GetSharedSecret Version=\"2.0\" Id=\"1234\">"] dataUsingEncoding:NSUTF8StringEncoding]];
-//    [postBody appendData:[[NSString stringWithFormat:@"<vip:TokenModel>%@</vip:TokenModel>",tokenPrefix] dataUsingEncoding:NSUTF8StringEncoding]];
-//    [postBody appendData:[[NSString stringWithFormat:@"<vip:ActivationCode>%@</vip:ActivationCode>",activationCode] dataUsingEncoding:NSUTF8StringEncoding]];
-//    [postBody appendData:[[NSString stringWithString:@"<vip:OtpAlgorithm type=\"HMAC-SHA1-TRUNC-6DIGITS\"/>"] dataUsingEncoding:NSUTF8StringEncoding]];
-//    [postBody appendData:[[NSString stringWithString:@"</vip:GetSharedSecret>"] dataUsingEncoding:NSUTF8StringEncoding]];
-//    [postBody appendData:[[NSString stringWithString:@"</soapenv:Body>"] dataUsingEncoding:NSUTF8StringEncoding]];
-//    [postBody appendData:[[NSString stringWithString:@"</soapenv:Envelope>"] dataUsingEncoding:NSUTF8StringEncoding]];    
-
 	[postBody appendData:[[NSString stringWithString:@"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"] dataUsingEncoding:NSUTF8StringEncoding]];
 	[postBody appendData:[[NSString stringWithFormat:@"<GetSharedSecret xmlns=\"http://www.verisign.com/2006/08/vipservice\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.verisign.com/2006/08/vipserviceuaservice.xsd\" Id=\"1234567890Anu\" Version=\"2.0\">\n<TokenModel>%@</TokenModel>\n",tokenPrefix] dataUsingEncoding:NSUTF8StringEncoding]];
 	[postBody appendData:[[NSString stringWithString:@"<ActivationCode>"] dataUsingEncoding:NSUTF8StringEncoding]];
@@ -83,7 +71,7 @@ NSString *kSuccessCode =  @"0000";
 		NSError *parseError = nil;
 		Credential *temp = nil;
 		NSString *reasonCode = [parser parseXMLFile:thedata parseError:&parseError credential:&temp];
-		
+
 		if(reasonCode == nil || parseError!= nil){
 			/*
 			 * Parser has returned with an exception. 
@@ -137,6 +125,7 @@ NSString *kSuccessCode =  @"0000";
 
 @implementation Status
 @synthesize statusMessage,statusCode;
+@synthesize credential;
 
 - (id)initWithStatusCode:(NSString *)code message:(NSString *)message{
 	if(self == [super init]){

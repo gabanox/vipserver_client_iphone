@@ -5,6 +5,7 @@
 @implementation Credential
 @synthesize credId,sharedSecret;
 @synthesize creationTime;
+@synthesize securityCode;
 
 - (id)initWithCredential: (Credential *)credential{
 	if(self == [super init]){
@@ -47,6 +48,7 @@
 		NSTimeInterval curTime = [[NSDate date]timeIntervalSince1970];
 		get_hotp(0x306, (char *)output.data, 20, curTime, 30, response, sizeof response);
 		securityCode = [NSString stringWithUTF8String:response];
+        self.securityCode = securityCode;
 		return securityCode;
 	}
 	else

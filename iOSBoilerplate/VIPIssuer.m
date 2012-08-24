@@ -65,18 +65,50 @@
 	return activationCodeResponse;
 }
 
+- (NSString *) requestValidationUsingCredential:(Credential *)aCredential
+{
+    NSString *validationResponse = @"";
+    
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:VIP_ISSUER_VALIDATION_ENDPOINT_URL ]];
+    [request setHTTPMethod:@"POST"];
+    [request addValue:@"text/xml" forHTTPHeaderField:@"Content-Type"];
+    
+    NSMutableData *requestData = [NSMutableData data];
+    
+    NSMutableString *requestString = [NSMutableString string];
+    [requestString appendString:@"<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sch=\"http://www.anzen.com.mx/vipserverissuer/validate/schema\">"];
+    [requestString appendString:@"<soapenv:Header/>"];
+    [requestString appendString:@"<soapenv:Body>"];
+    [requestString appendString:@"<sch:ValidateCredentialRequest>"];
+    [requestString appendString:@"<sch:Credential>"];
+    [requestString appendFormat:@"<sch:tokenId>%@</sch:tokenId>", aCredential.credId];
+    [requestString appendFormat:@"<sch:otp>%@</sch:otp>", aCredential.getSecurityCode];
+    [requestString appendString:@"</sch:Credential>"];
+    [requestString appendString:@"</sch:ValidateCredentialRequest>"];
+    [requestString appendString:@"</soapenv:Body>"];
+    [requestString appendString:@"</soapenv:Envelope>"];
+
+    NSLog(@"request message : %@", requestString);
+    [requestData appendData:[[NSString stringWithString:requestString] dataUsingEncoding:NSUTF8StringEncoding]];
+    [request setHTTPBody:requestData];
+    
+    NSData *responseData = [self requestResponseFrom:requestData usingHTTP:request];
+    NSError *parseError = nil;
+    NSLog(@"validation  response %@", [[NSString alloc] initWithData:responseData encoding:NSASCIIStringEncoding]);
+    
+    validationResponse = [parser parseCredentialValidationResponse:responseData parseError:&parseError];
+
+    return validationResponse;
+}
 -(NSData *) requestResponseFrom:(NSData *)data usingHTTP:(NSMutableURLRequest *)requestMethod
 {
-    
     NSString *postRequestAsString = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];
-    
-//	NSLog(@"Request : %@", postRequestAsString);
+	NSLog(@"Request : %@", postRequestAsString);
     
     NSURLResponse *theresponse = nil;
 	NSError* theerror=nil;
 	
 	return [NSURLConnection sendSynchronousRequest:requestMethod returningResponse:&theresponse error:&theerror];
-
 }
 
 @end

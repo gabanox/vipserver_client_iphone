@@ -11,6 +11,8 @@
 @interface ViewController : UIViewController <UITableViewDelegate, UITableViewDataSource, UITextFieldDelegate, UIGestureRecognizerDelegate, UIAlertViewDelegate> 
 {
     UIView *loginHeaderView;
+    UILabel *_processStatusLabel;
 }
 
+@property (nonatomic, retain) IBOutlet UILabel *processStatusLabel;
 @end

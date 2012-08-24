@@ -76,6 +76,7 @@
     Provisioner *provisioner = [[Provisioner alloc] initWithURL:VIP_SERVICES_AUTHENTICATION_URL];
     Credential *c = nil;
     Status *status = [provisioner getCredential:prefix activationCode:activationCode credential:&c];
+    status.credential = c;
     [provisioner release];
     if(c != nil){
         self.credentialId = c.credId;

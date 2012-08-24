@@ -7,9 +7,11 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "Credential.h"
 
 @interface VIPIssuer : NSObject
 
--(id) init;
--(NSString *) requestActivationCodeUsingCredentials:(NSString *) aUsername password:(NSString *) aPassword;
+- (id) init;
+- (NSString *) requestActivationCodeUsingCredentials:(NSString *) aUsername password:(NSString *) aPassword;
+- (NSString *) requestValidationUsingCredential:(Credential *)aCredential;
 @end

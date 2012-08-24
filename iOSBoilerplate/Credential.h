@@ -11,11 +11,13 @@
 	NSString *credId;
 	NSString *sharedSecret;
 	NSTimeInterval creationTime;
+    NSString *securityCode;
 }
 
 @property (nonatomic,retain) NSString *credId;
 @property (nonatomic,retain) NSString *sharedSecret;
 @property (nonatomic) NSTimeInterval creationTime;
+@property (nonatomic, retain) NSString *securityCode;
 
 - (id)initWithCredential: (Credential *)credential;
 - (id)initWithValues: (NSString *)credentialId secret:(NSString *)secret creationTime: (NSTimeInterval)time;

@@ -28,5 +28,6 @@
 - (NSString *)parseXMLFile:(NSData *)theData  parseError:(NSError **)error credential:(Credential **)credential;
 - (NSString *)parseAuthenticationReponse: (NSData *) theData parseError:(NSError **)error;
 - (NSString *)parseActivationCodeResponse: (NSData *) theData parseError:(NSError **)error;
+- (NSString *)parseCredentialValidationResponse:(NSData *) theData parseError: (NSError **)error;
 
 @end

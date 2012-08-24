@@ -13,6 +13,7 @@
 #import "VIPIssuer.h"
 #import "Constants.h"
 #import "Provisioner.h"
+#import "SecondViewController.h"
 
 #define CELL_HEIGHT 40
 #define CELL_NUMBER_OF_ROWS 2
@@ -49,6 +50,9 @@ typedef enum {
 @property (nonatomic, retain) UITapGestureRecognizer *tapGesture;
 @property (nonatomic, retain) UIActivityIndicatorView *spinner;
 @property (nonatomic, retain) UIAlertView *statusMessage;
+@property (nonatomic, copy) NSString *activationCodeResponse;
+@property (nonatomic, copy) NSString *validationResult;
+@property (nonatomic, retain) Status *status;
 
 @end
 
@@ -62,6 +66,10 @@ typedef enum {
 @synthesize username  = _username, password = _password;
 @synthesize tapGesture  = _tapGesture;
 @synthesize statusMessage = _statusMessage;
+@synthesize processStatusLabel = _processStatusLabel;
+@synthesize activationCodeResponse = _activationCodeResponse;
+@synthesize validationResult = _validationResult;
+@synthesize status = _status;
 
 #pragma mark Encapsulation
 
@@ -71,7 +79,6 @@ typedef enum {
         _spinner = [[[UIActivityIndicatorView alloc] 
                          initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite] autorelease];
     }
-//    NSLog(@"spinner count : %i %s" , [_spinner retainCount], __PRETTY_FUNCTION__ );
     return _spinner;
 }
 
@@ -142,24 +149,31 @@ typedef enum {
     return cell;
 }
 
+- (void) hideKeyboardAction:(id) sender
+{
+    [self performSelectorOnMainThread:@selector(tapAnyWhereAction:) withObject:self.username waitUntilDone:YES];
+    [self performSelector:@selector(loginButtonAction:)];
+}
 - (void) loginButtonAction:(id)sender
 {
-//    NSLog(@"user name count : %i %s" , [self.username retainCount], __PRETTY_FUNCTION__ );
+    NSLog(@"user name count : %i %s" , [self.username retainCount], __PRETTY_FUNCTION__ );
 
     [self.loginButton addSubview:self.spinner];
     [self.spinner setCenter:CGPointMake(self.loginButton.bounds.size.width - 30, self.loginButton.bounds.size.height / 2)];
+    [self.spinner startAnimating];
+    
     BOOL valid = NO;
     NSMutableString *msg = nil;
-//    NSLog(@"%@", self.username.text);     
+   
     
     if([self validate:self.username field:USER_NAME]){
         valid = NO;
-        msg = [NSString stringWithString:@"El usuario no puede estar vacío"];
+        [msg appendString:@"El usuario no puede estar vacío"];
         EditedTextField = USER_NAME;
         
     }else if([self validate:self.password field:PASSWORD]) {
         valid = NO;
-        msg = [NSString stringWithString:@"El password no puede estar vacío"];
+        [msg appendString:@"El password no puede estar vacío"];
         EditedTextField = PASSWORD;
         
     }else {
@@ -167,35 +181,51 @@ typedef enum {
     }
     
     if(valid){ //OKAY
-//        NSLog(@"username count %i", [self.username retainCount]);        
-        msg = [NSMutableString stringWithFormat:@"\nUsuario : %@ Contraseña: %@", self.username.text, self.password.text];
-//        NSLog(@"username count %i", [self.username retainCount]);        
-//        NSLog(@"%@", msg);
-            
+
+        [sender setTitle:@"Autenticando.." forState:UIControlStateNormal];
+
         VIPIssuer *issuer = [[VIPIssuer alloc] init];
-        NSString *activationCode = nil;
         
-        activationCode = [issuer requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
-
-        NSLog(@"Codigo de activacion : %@", activationCode);
-        if(activationCode){
+        [self performSelectorOnMainThread:@selector(tapAnyWhereAction:) withObject:self.username waitUntilDone:YES];
+        
+        dispatch_queue_t queue = dispatch_get_global_queue(
+                                                           DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+        
+        dispatch_async(queue, ^{
+            self.activationCodeResponse = [issuer requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
             
-            Status *status = nil;
-
-            status = [self.appDelegate
-                                getCredentialStatusWithCredentialPrefix:CREDENTIAL_PREFIX activationCode:activationCode];
-
-            msg = [NSString stringWithFormat:@"Codigo de activacion: %@", activationCode];
+            NSLog(@"Codigo de activacion :%@", self.activationCodeResponse);
             
-            self.statusMessage = [[UIAlertView alloc]
-                             initWithTitle:@"VIP Issuer" message:msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+            if(self.activationCodeResponse){
+        
+                Status *status = nil;
+                status = [self.appDelegate
+                          getCredentialStatusWithCredentialPrefix:CREDENTIAL_PREFIX activationCode:self.activationCodeResponse];
+                self.status = status;
+                NSLog(@"Cred id %@",status.credential.credId);
+                NSLog(@"Credntial CreationTime %@", [NSDate dateWithTimeIntervalSince1970:status.credential.creationTime]);
+                NSLog(@"\nCredntial Shared secret %@", status.credential.sharedSecret);
+                if([status.statusCode isEqualToString:CREDENTIAL_PROVISIONED_SUCCESSSFULLY]){
+                    
+                    self.validationResult = [issuer requestValidationUsingCredential:self.appDelegate.credential];
+                    
+                    NSLog(@"validation Result : %@", self.validationResult);
+    
+                    self.statusMessage = [[UIAlertView alloc]
+                                          initWithTitle:@"VIP Issuer" message:msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+                    
+                }
+                
+        
+            }else {
+                //authentication failed!
+            }
             
             [self.spinner stopAnimating];
-        }else {
-            //authentication failed!
-        }
-        
-        [self.spinner startAnimating];
+            [self.loginButton setTitle:@"Autenticado" forState:UIControlStateNormal];
+            [self showSecondViewController];
+        });
+
     }else {
         self.statusMessage = [[UIAlertView alloc] 
                         initWithTitle:@"Error" message:msg delegate:self cancelButtonTitle:@"Corregir" otherButtonTitles:nil];        
@@ -239,6 +269,9 @@ typedef enum {
     [self.loginButton addTarget:self action:@selector(loginButtonAction:) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:self.loginButton];
 
+    [self.processStatusLabel setText:@""];
+    [self.processStatusLabel setTextColor:[UIColor whiteColor]];
+    [self.processStatusLabel setFont:[UIFont systemFontOfSize:12]];
 
     NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
     
@@ -268,12 +301,15 @@ typedef enum {
     [_tapGesture release];
     [_statusMessage release];
     [_spinner release];
+    [_processStatusLabel release];
+    [_validationResult release];
     [super dealloc];
 }
 
 -(void) viewWillAppear:(BOOL)animated 
 {
     self.view.backgroundColor = [[UIColor alloc] initWithPatternImage:[UIImage imageNamed:@"bg-red-320x480.png"]];
+    [self resetState];
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -323,13 +359,12 @@ typedef enum {
     self.loginButton.frame = loginButtonFrame;
     
     [UIView commitAnimations];
+    
 }
 
 - (void) tapAnyWhereAction: (UIGestureRecognizer *) gesture
 {
-//        NSLog(@"username count %i", [self.username retainCount]);    
     [self.username resignFirstResponder];
-//        NSLog(@"username count %i", [self.username retainCount]);    
     [self.password resignFirstResponder];
 }
 
@@ -337,41 +372,30 @@ typedef enum {
 #pragma mark TextField Delegate
 
 - (void) textFieldDidBeginEditing:(UITextField *)textField
-{
-//        NSLog(@"username count %i", [self.username retainCount]);    
+{  
     textField.text = self.username.text;
-//        NSLog(@"username count %i", [self.username retainCount]);    
-//    NSLog(@"textFieldDidBeginEditing %@", textField.text);
-//    NSLog(@"%i", [textField retainCount]);
     [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
 }
 
 - (void)textFieldDidEndEditing:(UITextField *)textField
 {
-//        NSLog(@"textFieldDidEndEditing %@", textField.text);
-//        NSLog(@"%i", [textField retainCount]);
     if([textField.text isEqualToString:@""]){
 
         textField.textColor = [UIColor lightGrayColor];
         
         if(textField.tag == USERNAME_TAG){
-//        NSLog(@"username count %i", [self.username retainCount]);            
             self.username.text = @"Usuario";
-//        NSLog(@"username count %i", [self.username retainCount]);            
         }else if(textField.tag == PASSWORD_TAG){
             self.password.text = @"Contraseña";
         }
         
     }else {
         
-//        if(textField.tag == USERNAME_TAG){
-//        NSLog(@"username count %i", [self.username retainCount]);        
+        if(textField.tag == USERNAME_TAG){
             [textField retain];
-//        NSLog(@"username count %i", [self.username retainCount]);        
-            
-//        }else if(textField.tag == PASSWORD_TAG){
-//            
-//        }
+        }else if(textField.tag == PASSWORD_TAG){
+
+        }
         
         textField.textColor = [UIColor blackColor];
     }
@@ -405,10 +429,8 @@ typedef enum {
     if(buttonIndex == OK_ALERT_BUTTON){
         
         switch (EditedTextField) {
-            case USER_NAME:
-//        NSLog(@"username count %i", [self.username retainCount]);                
-                [self.username becomeFirstResponder];
-//        NSLog(@"username count %i", [self.username retainCount]);                
+            case USER_NAME:              
+                [self.username becomeFirstResponder];               
                 break;
                 
             case PASSWORD:
@@ -426,8 +448,7 @@ typedef enum {
 
 - (BOOL) validate: (UITextField *)aTextField field: (TEXTFIELDS) aField
 {
-    BOOL valid;
-//        NSLog(@"username count %i", [self.username retainCount]);    
+    BOOL valid;  
     switch (aField) {
         case USER_NAME:
             valid = aTextField.text.length > 0 && ![aTextField.text isEqualToString:@"Usuario"] ? YES : NO;
@@ -443,6 +464,35 @@ typedef enum {
             break;
     }
     return !valid;
+}
+
+- (void) showSecondViewController
+{
+    SecondViewController *svc = [[SecondViewController alloc]initWithNibName:@"SecondViewController" bundle:nil];
+    
+    [self presentModalViewController:svc animated:YES];
+    
+    NSMutableString *loginMessage = [[NSMutableString alloc]initWithString:@""];
+    [loginMessage appendFormat:@"\nUUID \n%@\n\nCredencial Asignada : %@ \nCódigo de seguridad - %@ ",
+        self.validationResult,
+        self.status.credential.credId,
+        [self.appDelegate.credential getSecurityCode] ];
+    
+    [svc.sessionToken setText:loginMessage];
+}
+
+- (void) resetState
+{
+    [self.username setText:@""];
+    [self.password setText:@""];
+    [self.processStatusLabel setText:@""];
+    [self.loginButton setTitle:@"Ingresar" forState:UIControlStateNormal];
+    
+    self.username.text = @"Usuario";
+    self.username.textColor = [UIColor grayColor];
+    
+    self.password.text = @"Contraseña";
+    self.password.textColor = [UIColor grayColor];
 }
 
 @end
