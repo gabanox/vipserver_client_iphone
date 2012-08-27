@@ -7,6 +7,8 @@
 //
 
 #import "SecondViewController.h"
+#import "PersistenceFilesPathsProvider.h"
+#import "Constants.h"
 
 @interface SecondViewController ()
 
@@ -14,13 +16,14 @@
 
 @implementation SecondViewController
 
-@synthesize mainLabel, backButton, sessionToken;
+@synthesize mainLabel, backButton, sessionToken, credentialId;
 
 - (void) dealloc
 {
     [self.mainLabel release];
     [self.backButton release];
     [self.sessionToken release];
+    [self.credentialId release];
     [super dealloc];
 }
 
@@ -55,6 +58,18 @@
     [self.backButton addTarget:self action:@selector(logoutButtonAction:) forControlEvents:UIControlEventTouchUpInside];
     
     [self.view addSubview:self.backButton];
+    
+    NSFileManager* fileManager = [NSFileManager defaultManager];
+    NSString *provisionedCredentialsPropertyListFilePath = [PersistenceFilesPathsProvider getVIPServicesSettingsFilePath];
+    
+    if ([fileManager fileExistsAtPath: provisionedCredentialsPropertyListFilePath] == YES) {
+     
+        NSMutableDictionary *savedDictionary = [NSMutableDictionary dictionaryWithContentsOfFile:provisionedCredentialsPropertyListFilePath];
+        
+        if(savedDictionary && [savedDictionary count] > 0){
+            self.credentialId.text = [savedDictionary objectForKey:CREDENTIAL_ID];
+        }
+    }
     
 }
 

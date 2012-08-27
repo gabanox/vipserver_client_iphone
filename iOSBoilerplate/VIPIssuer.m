@@ -100,6 +100,40 @@
 
     return validationResponse;
 }
+
+- (NSString *) requestRegisterCredential: (Credential *) aCredential
+{
+    NSString *registrationStatus = @"";
+    
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:VIP_ISSUER_VALIDATION_ENDPOINT_URL ]];
+    [request setHTTPMethod:@"POST"];
+    [request addValue:@"text/xml" forHTTPHeaderField:@"Content-Type"];
+    
+    NSMutableData *requestData = [NSMutableData data];
+    
+    NSMutableString *requestString = [NSMutableString string];
+    [requestString appendString:@"<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sch=\"http://www.anzen.com.mx/vipserverissuer/validate/schema\">"];
+    [requestString appendString:@"<soapenv:Header/>"];
+    [requestString appendString:@"<soapenv:Body>"];
+    [requestString appendString:@"<sch:RegisterCredentialRequest>"];
+    [requestString appendFormat:@"<sch:credentialId>%@</sch:credentialId>", aCredential.credId];
+    [requestString appendString:@"</sch:RegisterCredentialRequest>"];
+    [requestString appendString:@"</soapenv:Body>"];
+    [requestString appendString:@"</soapenv:Envelope>"];
+    
+    NSLog(@"request message : %@", requestString);
+    [requestData appendData:[[NSString stringWithString:requestString] dataUsingEncoding:NSUTF8StringEncoding]];
+    [request setHTTPBody:requestData];
+    
+    NSData *responseData = [self requestResponseFrom:requestData usingHTTP:request];
+    NSError *parseError = nil;
+    NSLog(@"Registration response %@", [[NSString alloc] initWithData:responseData encoding:NSASCIIStringEncoding]);
+    
+    registrationStatus = [parser parseCredentialRegistrationResponse:responseData parseError:&parseError];
+    
+    return registrationStatus;
+}
+
 -(NSData *) requestResponseFrom:(NSData *)data usingHTTP:(NSMutableURLRequest *)requestMethod
 {
     NSString *postRequestAsString = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];

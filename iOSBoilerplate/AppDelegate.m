@@ -10,6 +10,7 @@
 #import "ViewController.h"
 #import "Credential.h"
 #import "Constants.h"
+#import "PersistenceFilesPathsProvider.h"
 
 @implementation AppDelegate
 

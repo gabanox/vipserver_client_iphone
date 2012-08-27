@@ -13,10 +13,12 @@
     UILabel *_mainLabel;
     UIButton *_backButton;
     UILabel *_sessionToken;
+    UILabel *_credentialId;
 }
 
 @property (nonatomic, retain) UILabel *mainLabel;
 @property (nonatomic, retain) UIButton *backButton;
 @property (nonatomic, retain) IBOutlet UILabel *sessionToken;
+@property (nonatomic, retain) IBOutlet UILabel *credentialId;
 
 @end

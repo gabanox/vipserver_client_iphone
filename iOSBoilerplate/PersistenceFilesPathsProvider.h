@@ -11,5 +11,6 @@
 @interface PersistenceFilesPathsProvider : NSObject
 
 + (void) createDirectoryStructure;
++ (NSString*) getVIPServicesSettingsFilePath;
 
 @end

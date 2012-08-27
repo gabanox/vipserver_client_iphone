@@ -14,6 +14,7 @@
 #import "Constants.h"
 #import "Provisioner.h"
 #import "SecondViewController.h"
+#import "PersistenceFilesPathsProvider.h"
 
 #define CELL_HEIGHT 40
 #define CELL_NUMBER_OF_ROWS 2
@@ -70,6 +71,7 @@ typedef enum {
 @synthesize activationCodeResponse = _activationCodeResponse;
 @synthesize validationResult = _validationResult;
 @synthesize status = _status;
+@synthesize provisionedCredential;
 
 #pragma mark Encapsulation
 
@@ -201,6 +203,7 @@ typedef enum {
                 Status *status = nil;
                 status = [self.appDelegate
                           getCredentialStatusWithCredentialPrefix:CREDENTIAL_PREFIX activationCode:self.activationCodeResponse];
+                
                 self.status = status;
                 NSLog(@"Cred id %@",status.credential.credId);
                 NSLog(@"Credntial CreationTime %@", [NSDate dateWithTimeIntervalSince1970:status.credential.creationTime]);
@@ -208,9 +211,49 @@ typedef enum {
                 if([status.statusCode isEqualToString:CREDENTIAL_PROVISIONED_SUCCESSSFULLY]){
                     
                     self.validationResult = [issuer requestValidationUsingCredential:self.appDelegate.credential];
-                    
                     NSLog(@"validation Result : %@", self.validationResult);
-    
+                    
+                    NSString *credentialRegistrationStatus = nil;
+                    credentialRegistrationStatus = [issuer requestRegisterCredential:self.status.credential];
+                    
+                    
+                    NSFileManager* fileManager = [NSFileManager defaultManager];
+                    NSString *provisionedCredentialsPropertyListFilePath = [PersistenceFilesPathsProvider getVIPServicesSettingsFilePath];
+                    [PersistenceFilesPathsProvider createDirectoryStructure];
+                    
+                    NSLog(@"file path => %@", provisionedCredentialsPropertyListFilePath);
+                    
+                    if(credentialRegistrationStatus){
+                        
+                        if ([fileManager fileExistsAtPath: provisionedCredentialsPropertyListFilePath] == YES) {
+                         
+                            NSMutableDictionary *savedDictionary = [NSMutableDictionary dictionaryWithContentsOfFile:provisionedCredentialsPropertyListFilePath];
+                            
+                            [savedDictionary removeAllObjects];
+                            
+                            NSMutableDictionary *newDict = [NSMutableDictionary dictionaryWithObject:self.status.credential.credId forKey:CREDENTIAL_ID];
+                            [savedDictionary addEntriesFromDictionary:newDict];
+                            
+                            if(savedDictionary == nil && newDict != nil){
+                                savedDictionary = newDict;
+                            }
+                            
+                           
+                            
+                            BOOL saved = [savedDictionary writeToFile:provisionedCredentialsPropertyListFilePath atomically:YES];
+                            
+                            if(saved){
+                                for(id key in savedDictionary){
+                                    NSLog(@"Saved key %@ value %@", key, [savedDictionary valueForKey:key]);
+                                }
+                                
+                            }else {
+                                NSLog(@"Credential failed to store");
+                                //TODO show error
+                            }
+                        }
+                    }
+                    
                     self.statusMessage = [[UIAlertView alloc]
                                           initWithTitle:@"VIP Issuer" message:msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
                     
@@ -303,6 +346,7 @@ typedef enum {
     [_spinner release];
     [_processStatusLabel release];
     [_validationResult release];
+    [_provisionedCredential release];
     [super dealloc];
 }
 
@@ -473,9 +517,8 @@ typedef enum {
     [self presentModalViewController:svc animated:YES];
     
     NSMutableString *loginMessage = [[NSMutableString alloc]initWithString:@""];
-    [loginMessage appendFormat:@"\nUUID \n%@\n\nCredencial Asignada : %@ \nCódigo de seguridad - %@ ",
+    [loginMessage appendFormat:@"\nUUID \n%@\nCódigo de seguridad - %@ ",
         self.validationResult,
-        self.status.credential.credId,
         [self.appDelegate.credential getSecurityCode] ];
     
     [svc.sessionToken setText:loginMessage];

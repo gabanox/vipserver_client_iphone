@@ -12,7 +12,9 @@
 {
     UIView *loginHeaderView;
     UILabel *_processStatusLabel;
+    NSString *_provisionedCredential;
 }
 
 @property (nonatomic, retain) IBOutlet UILabel *processStatusLabel;
+@property (nonatomic, readonly, retain) NSString *provisionedCredential;
 @end

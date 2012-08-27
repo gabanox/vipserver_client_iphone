@@ -10,6 +10,7 @@
 #import "PersistenceFilesPathsProvider.h"
 
 #define PERSISTENCE_DIRECTORY									@"Persistence"
+#define VIP_SERVICES_CONFIGURATION_FILE                         @"VIPServices.plist"
 
 @interface PersistenceFilesPathsProvider()
 
@@ -27,7 +28,24 @@
 	
 	if ([fileManager fileExistsAtPath: auxDir] == NO)
 	{
-		[fileManager createDirectoryAtPath: auxDir withIntermediateDirectories: YES attributes: nil error: nil];
+        NSError *error = nil;
+        NSDictionary *attribs;
+        NSURL *newDir = [NSURL fileURLWithPath:auxDir];
+        BOOL createdDirectory = [fileManager createDirectoryAtURL:newDir withIntermediateDirectories:YES attributes:nil error:&error];
+//		BOOL createdDirectory = [fileManager createDirectoryAtPath: auxDir withIntermediateDirectories: YES attributes: nil error: &error];
+        
+        if(createdDirectory){
+            
+            attribs = [fileManager attributesOfItemAtPath: auxDir error: NULL];
+            
+            NSLog (@"Created on %@", [attribs objectForKey: NSFileCreationDate]);
+            NSLog (@"File type %@", [attribs objectForKey: NSFileType]);
+            NSLog (@"POSIX Permissions %@", [attribs objectForKey: NSFilePosixPermissions]);
+            
+        }else {
+            NSLog(@"Failed to create directory structure");
+        }
+
 	}
 }
 
@@ -35,6 +53,11 @@
 	NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
 	
 	return [paths objectAtIndex: 0];
+}
+
++ (NSString*) getVIPServicesSettingsFilePath {
+    return [[[PersistenceFilesPathsProvider getDocumentsDirPath] stringByAppendingPathComponent:PERSISTENCE_DIRECTORY]
+            stringByAppendingPathComponent:VIP_SERVICES_CONFIGURATION_FILE];
 }
 
 @end

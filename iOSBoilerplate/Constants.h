@@ -18,4 +18,5 @@ extern NSString * const MyGlobalConstant;
 //#define CREDENTIAL_PREFIX                               @"QATP"
 #define CREDENTIAL_PREFIX                               @"QAMT"
 #define CREDENTIAL_PROVISIONED_SUCCESSSFULLY            @"0000"
+#define CREDENTIAL_ID                                   @"CredentialID"
 @end
