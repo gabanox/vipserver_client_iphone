@@ -19,4 +19,8 @@ extern NSString * const MyGlobalConstant;
 #define CREDENTIAL_PREFIX                               @"QAMT"
 #define CREDENTIAL_PROVISIONED_SUCCESSSFULLY            @"0000"
 #define CREDENTIAL_ID                                   @"CredentialID"
+#define ACTIVATION_CODE_KEY                             @"activationCode"
+#define AUTHENTICATION_RESPONSE_KEY                     @"authenticationResponse"
+#define AUTHENTICATION_SUCCESS_STATUS_KEY               @"AUTHENTICATION_PERFORMED_PENDING_VALIDATION"
+
 @end

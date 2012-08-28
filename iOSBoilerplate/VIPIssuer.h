@@ -12,7 +12,7 @@
 @interface VIPIssuer : NSObject
 
 - (id) init;
-- (NSString *) requestActivationCodeUsingCredentials:(NSString *) aUsername password:(NSString *) aPassword;
+- (NSDictionary *) requestActivationCodeUsingCredentials:(NSString *) aUsername password:(NSString *) aPassword;
 - (NSString *) requestValidationUsingCredential:(Credential *)aCredential;
 - (NSString *) requestRegisterCredential: (Credential *) aCredential;
 @end

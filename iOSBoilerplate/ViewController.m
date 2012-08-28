@@ -52,6 +52,7 @@ typedef enum {
 @property (nonatomic, retain) UIActivityIndicatorView *spinner;
 @property (nonatomic, retain) UIAlertView *statusMessage;
 @property (nonatomic, copy) NSString *activationCodeResponse;
+@property (nonatomic, copy) NSString *authenticationStatusResponse;
 @property (nonatomic, copy) NSString *validationResult;
 @property (nonatomic, retain) Status *status;
 
@@ -69,6 +70,7 @@ typedef enum {
 @synthesize statusMessage = _statusMessage;
 @synthesize processStatusLabel = _processStatusLabel;
 @synthesize activationCodeResponse = _activationCodeResponse;
+@synthesize authenticationStatusResponse = _authenticationStatusResponse;
 @synthesize validationResult = _validationResult;
 @synthesize status = _status;
 @synthesize provisionedCredential;
@@ -194,12 +196,16 @@ typedef enum {
                                                            DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         
         dispatch_async(queue, ^{
-            self.activationCodeResponse = [issuer requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
             
-            NSLog(@"Codigo de activacion :%@", self.activationCodeResponse);
+            NSDictionary *activationAuthenticationResponse = [issuer
+                                                requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
+
+            self.activationCodeResponse = [activationAuthenticationResponse valueForKey:ACTIVATION_CODE_KEY];
             
             if(self.activationCodeResponse){
-        
+            
+                NSLog(@"Codigo de activacion :%@", self.activationCodeResponse);
+                
                 Status *status = nil;
                 status = [self.appDelegate
                           getCredentialStatusWithCredentialPrefix:CREDENTIAL_PREFIX activationCode:self.activationCodeResponse];
@@ -226,7 +232,7 @@ typedef enum {
                     if(credentialRegistrationStatus){
                         
                         if ([fileManager fileExistsAtPath: provisionedCredentialsPropertyListFilePath] == YES) {
-                         
+                            
                             NSMutableDictionary *savedDictionary = [NSMutableDictionary dictionaryWithContentsOfFile:provisionedCredentialsPropertyListFilePath];
                             
                             [savedDictionary removeAllObjects];
@@ -238,7 +244,7 @@ typedef enum {
                                 savedDictionary = newDict;
                             }
                             
-                           
+                            
                             
                             BOOL saved = [savedDictionary writeToFile:provisionedCredentialsPropertyListFilePath atomically:YES];
                             
@@ -259,9 +265,8 @@ typedef enum {
                     
                 }
                 
-        
             }else {
-                //authentication failed!
+                NSLog(@"authentication failed!");
             }
             
             [self.spinner stopAnimating];

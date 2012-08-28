@@ -24,10 +24,9 @@
 
 #pragma mark VIP Issuer web methods
 
--(NSString *) requestActivationCodeUsingCredentials:(NSString *) aUsername password:(NSString *) aPassword
+-(NSDictionary *) requestActivationCodeUsingCredentials:(NSString *) aUsername password:(NSString *) aPassword
 {
-    NSString *authenticationResponse = @"";
-    NSString *activationCodeResponse = @"";
+    NSMutableDictionary *response = [[NSMutableDictionary alloc]init];
     
     NSMutableURLRequest *postRequest = nil;
     NSError *parseError = nil;
@@ -40,29 +39,29 @@
 	[postRequest addValue:contentType forHTTPHeaderField: @"Content-Type"];
     
     NSMutableData *requestData = [NSMutableData data];
-	[requestData appendData:[[NSString stringWithString:@"<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sch=\"http://www.anzen.com.mx/vipserverissuer/validate/schema\">"]
-                             dataUsingEncoding:NSUTF8StringEncoding]];
     
-	[requestData appendData:[[NSString stringWithString:@"<soapenv:Header/>"] dataUsingEncoding:NSUTF8StringEncoding]];
-	[requestData appendData:[[NSString stringWithString:@"<soapenv:Body>"] dataUsingEncoding:NSUTF8StringEncoding]];
-    
-	[requestData appendData:[[NSString stringWithString:@"<sch:AuthenticateUserRequest>"] dataUsingEncoding:NSUTF8StringEncoding]];
-    [requestData appendData:[[NSString stringWithFormat:@"<sch:userName>%@</sch:userName>",aUsername] dataUsingEncoding:NSUTF8StringEncoding]];
-    [requestData appendData:[[NSString stringWithFormat:@"<sch:password>%@</sch:password>",aPassword] dataUsingEncoding:NSUTF8StringEncoding]];
-	[requestData appendData:[[NSString stringWithString:@"</sch:AuthenticateUserRequest>"] dataUsingEncoding:NSUTF8StringEncoding]];
-    
-	[requestData appendData:[[NSString stringWithString:@"</soapenv:Body>"] dataUsingEncoding:NSUTF8StringEncoding]];
-	[requestData appendData:[[NSString stringWithString:@"</soapenv:Envelope>"] dataUsingEncoding:NSUTF8StringEncoding]];
-    
-	[postRequest setHTTPBody:requestData];
-	
-    NSData *responseData = [self requestResponseFrom:requestData usingHTTP:postRequest];
-    
-    authenticationResponse = [parser parseAuthenticationReponse:responseData parseError:&parseError]; //@TODO corregir
-    activationCodeResponse = [parser parseActivationCodeResponse:responseData parseError:&parseError];
+    NSMutableString *requestString = [NSMutableString string];
+    [requestString appendString:@"<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sch=\"http://www.anzen.com.mx/vipserverissuer/validate/schema\">"];
+    [requestString appendString:@"<soapenv:Header/>"];
+    [requestString appendString:@"<soapenv:Body>"];
+    [requestString appendString:@"<sch:AuthenticateUserRequest>"];
+    [requestString appendFormat:@"<sch:userName>%@</sch:userName>",aUsername ];
+    [requestString appendFormat:@"<sch:password>%@</sch:password>",aPassword ];
+    [requestString appendString:@"</sch:AuthenticateUserRequest>"];
+    [requestString appendString:@"</soapenv:Body>"];
+    [requestString appendString:@"</soapenv:Envelope>"];
 
     
-	return activationCodeResponse;
+    [requestData appendData:[[NSString stringWithString:requestString] dataUsingEncoding:NSUTF8StringEncoding]];
+    [postRequest setHTTPBody:requestData];
+
+    NSData *responseData = [self requestResponseFrom:requestData usingHTTP:postRequest];
+    NSLog(@"validation  response %@", [[NSString alloc] initWithData:responseData encoding:NSASCIIStringEncoding]);
+    
+    NSString *activationCode = [parser parseActivationCodeResponse:responseData parseError:&parseError];
+    
+    [response setValue:activationCode forKey:ACTIVATION_CODE_KEY];
+    return [[NSDictionary alloc]initWithDictionary:response];
 }
 
 - (NSString *) requestValidationUsingCredential:(Credential *)aCredential
