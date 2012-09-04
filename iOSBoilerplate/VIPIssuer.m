@@ -30,7 +30,7 @@
     
     NSMutableURLRequest *postRequest = nil;
     NSError *parseError = nil;
-    NSURL *url = [NSURL URLWithString:VIP_ISSUER_PROVISIONING_ENDPOINT_URL];
+    NSURL *url = [NSURL URLWithString:VIP_ISSUER_ENDPOINT_URL];
     
     postRequest = [NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:60.0];
     [postRequest setHTTPMethod:@"POST"];
@@ -68,7 +68,7 @@
 {
     NSString *validationResponse = @"";
     
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:VIP_ISSUER_VALIDATION_ENDPOINT_URL ]];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:VIP_ISSUER_ENDPOINT_URL ]];
     [request setHTTPMethod:@"POST"];
     [request addValue:@"text/xml" forHTTPHeaderField:@"Content-Type"];
     
@@ -104,7 +104,7 @@
 {
     NSString *registrationStatus = @"";
     
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:VIP_ISSUER_VALIDATION_ENDPOINT_URL ]];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:VIP_ISSUER_ENDPOINT_URL ]];
     [request setHTTPMethod:@"POST"];
     [request addValue:@"text/xml" forHTTPHeaderField:@"Content-Type"];
     
@@ -129,6 +129,39 @@
     NSLog(@"Registration response %@", [[NSString alloc] initWithData:responseData encoding:NSASCIIStringEncoding]);
     
     registrationStatus = [parser parseCredentialRegistrationResponse:responseData parseError:&parseError];
+    
+    return registrationStatus;
+}
+
+- (NSString *)requestHashRegistryForCredential: (NSString *)sha1
+{
+    NSString *registrationStatus = @"";
+    
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:VIP_ISSUER_ENDPOINT_URL ]];
+    [request setHTTPMethod:@"POST"];
+    [request addValue:@"text/xml" forHTTPHeaderField:@"Content-Type"];
+    
+    NSMutableData *requestData = [NSMutableData data];
+    
+    NSMutableString *requestString = [NSMutableString string];
+    [requestString appendString:@"<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sch=\"http://www.anzen.com.mx/vipserverissuer/validate/schema\">"];
+    [requestString appendString:@"<soapenv:Header/>"];
+    [requestString appendString:@"<soapenv:Body>"];
+    [requestString appendString:@"<sch:RegisterHashValueForCredentialRequest>"];
+    [requestString appendFormat:@"<sch:sha1>%@</sch:sha1>", sha1];
+    [requestString appendString:@"</sch:RegisterHashValueForCredentialRequest>"];
+    [requestString appendString:@"</soapenv:Body>"];
+    [requestString appendString:@"</soapenv:Envelope>"];
+    
+    NSLog(@"request hash message : %@", requestString);
+    [requestData appendData:[[NSString stringWithString:requestString] dataUsingEncoding:NSUTF8StringEncoding]];
+    [request setHTTPBody:requestData];
+    
+    NSData *responseData = [self requestResponseFrom:requestData usingHTTP:request];
+    NSError *parseError = nil;
+    NSLog(@"Registration response %@", [[NSString alloc] initWithData:responseData encoding:NSASCIIStringEncoding]);
+    
+    registrationStatus = [parser parseHashRegistrationResponse:responseData parseError:&parseError];
     
     return registrationStatus;
 }

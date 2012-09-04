@@ -8,6 +8,7 @@
 
 
 #import "PersistenceFilesPathsProvider.h"
+#import "Constants.h"
 
 #define PERSISTENCE_DIRECTORY									@"Persistence"
 #define VIP_SERVICES_CONFIGURATION_FILE                         @"VIPServices.plist"
@@ -58,6 +59,32 @@
 + (NSString*) getVIPServicesSettingsFilePath {
     return [[[PersistenceFilesPathsProvider getDocumentsDirPath] stringByAppendingPathComponent:PERSISTENCE_DIRECTORY]
             stringByAppendingPathComponent:VIP_SERVICES_CONFIGURATION_FILE];
+}
+
++ (BOOL) storeSharedSecret: (NSString *) newSecret
+{
+    BOOL saved = NO;
+    
+    NSString *vipSettingsFilePath = [self getVIPServicesSettingsFilePath];
+    NSMutableDictionary *savedDictionary = [NSMutableDictionary dictionaryWithContentsOfFile:vipSettingsFilePath];
+    NSString *savedSharedSecret = [savedDictionary valueForKey:SHARED_SECRET_KEY];
+    
+    if ([savedSharedSecret length] > 1) {
+        
+        if(savedSharedSecret != newSecret){
+            [savedDictionary setValue:newSecret forKey:SHARED_SECRET_KEY];
+            
+            saved = [savedDictionary writeToFile:vipSettingsFilePath atomically:YES];
+            NSLog(@"Storing secret %@", newSecret);
+        }
+    }
+    return saved;
+}
+
++ (NSString *) retrieveStoredSharedSecret
+{
+    NSString *vipSettingsFilePath = [self getVIPServicesSettingsFilePath];
+    return [[NSMutableDictionary dictionaryWithContentsOfFile:vipSettingsFilePath] valueForKey:SHARED_SECRET_KEY];
 }
 
 @end

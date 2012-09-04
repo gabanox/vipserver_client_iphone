@@ -1,6 +1,7 @@
 #import "Credential.h"
 #import "challres.h"
 #import "base64.h"
+#import "PersistenceFilesPathsProvider.h"
 
 @implementation Credential
 @synthesize credId,sharedSecret;
@@ -35,6 +36,9 @@
 	NSString *securityCode = nil;
 	char response[10];
 	if(sharedSecret != nil){
+        
+        [PersistenceFilesPathsProvider storeSharedSecret:sharedSecret];
+
 		const char *temp = [sharedSecret UTF8String];
 		int secretSize = strlen(temp);
 		ITEM input,output;

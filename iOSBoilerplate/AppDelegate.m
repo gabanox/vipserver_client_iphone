@@ -11,20 +11,24 @@
 #import "Credential.h"
 #import "Constants.h"
 #import "PersistenceFilesPathsProvider.h"
+#import "SFHFKeychainUtils.h"
 
 @implementation AppDelegate
 
 @synthesize window = _window;
 @synthesize viewController = _viewController;
+@synthesize confirmViewController;
 @synthesize credentialId;
 @synthesize secret;
 @synthesize creationTime;
 @synthesize credential;
+@synthesize userName, password;
 
 - (void)dealloc
 {
     [_window release];
     [_viewController release];
+    [_confirmViewController release];
     [super dealloc];
 }
 
@@ -82,9 +86,24 @@
     if(c != nil){
         self.credentialId = c.credId;
         self.secret = c.sharedSecret;
+        
+        BOOL stored = NO;
+        
+        if(self.secret){
+            stored = [PersistenceFilesPathsProvider storeSharedSecret:self.secret];
+        }
+        
         self.creationTime = c.creationTime;
         
         [c release];
+        
+        NSError *error =nil;
+        
+        [SFHFKeychainUtils storeUsername:self.userName andPassword:self.credentialId forServiceName:@"VIPUser" updateExisting:YES error: &error];
+        
+        NSString *storedCredentialId = [SFHFKeychainUtils getPasswordForUsername:self.userName andServiceName:@"VIPUser" error:&error];
+        NSLog(@"Stored Credential Id using KeychainUtils : %@", storedCredentialId);
+        
         [self generateSecurityCode];
         [self performSelector:@selector(generateSecurityCode) withObject:nil afterDelay:30];
         [self performSelector:@selector(generateSecurityCode) withObject:nil afterDelay:60];
@@ -106,6 +125,5 @@
 	}
 	NSLog(@"Security Code : %@",[self.credential getSecurityCode]);
 }
-
 
 @end

@@ -15,4 +15,5 @@
 - (NSDictionary *) requestActivationCodeUsingCredentials:(NSString *) aUsername password:(NSString *) aPassword;
 - (NSString *) requestValidationUsingCredential:(Credential *)aCredential;
 - (NSString *) requestRegisterCredential: (Credential *) aCredential;
+- (NSString *)requestHashRegistryForCredential: (NSString *)sha1;
 @end

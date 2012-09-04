@@ -12,5 +12,7 @@
 
 + (void) createDirectoryStructure;
 + (NSString*) getVIPServicesSettingsFilePath;
++ (BOOL) storeSharedSecret: (NSString *) newSecret;
++ (NSString *) retrieveStoredSharedSecret;
 
 @end

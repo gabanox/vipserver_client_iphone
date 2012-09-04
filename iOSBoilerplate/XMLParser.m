@@ -109,6 +109,24 @@
     return self.contentOfSharedResponse;
 }
 
+- (NSString *)parseHashRegistrationResponse:(NSData *) theData parseError: (NSError **)error
+{
+    NSXMLParser *parser = [[NSXMLParser alloc]initWithData:theData];
+    [parser setDelegate:self];
+    [parser setShouldProcessNamespaces:NO];
+    [parser setShouldReportNamespacePrefixes:NO];
+    [parser setShouldResolveExternalEntities:NO];
+    
+    [parser parse];
+    
+    NSError *parseError = [parser parserError];
+    if(parseError && error){
+        *error = parseError;
+        return nil;
+    }
+    return self.contentOfSharedResponse;
+}
+
 - (void)parser:(NSXMLParser *)parser didStartElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName attributes:(NSDictionary *)attributeDict
 {
     if (qName) {
@@ -141,6 +159,9 @@
     }else if([elementName isEqualToString:@"ns2:status"]){
         self.contentOfSharedResponse = [NSMutableString string];
 
+    }else if([elementName isEqualToString:@"<sch:sha1>"]){
+        self.contentOfSharedResponse = [NSMutableString string];
+    
     }else{
 		self.contentOfSharedResponse = nil;
 		

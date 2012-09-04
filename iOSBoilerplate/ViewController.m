@@ -15,6 +15,7 @@
 #import "Provisioner.h"
 #import "SecondViewController.h"
 #import "PersistenceFilesPathsProvider.h"
+#import "ConfirmPersonalInformationViewController.h"
 
 #define CELL_HEIGHT 40
 #define CELL_NUMBER_OF_ROWS 2
@@ -37,6 +38,7 @@ typedef enum {
     TEXTFIELDS EditedTextField;
     TAGS Tag;
     UIActivityIndicatorView *_spinner;
+    IBOutlet UIButton *resetButton;
 }
 
 - (BOOL) validate: (UITextField *)aTextField field: (TEXTFIELDS) aField;
@@ -55,6 +57,7 @@ typedef enum {
 @property (nonatomic, copy) NSString *authenticationStatusResponse;
 @property (nonatomic, copy) NSString *validationResult;
 @property (nonatomic, retain) Status *status;
+@property (nonatomic, retain) UIButton *resetButton;
 
 @end
 
@@ -62,6 +65,7 @@ typedef enum {
 
 @synthesize appDelegate;
 @synthesize loginTable = _loginTable;
+@synthesize logo = _logo;
 @synthesize headerView = _headerView;
 @synthesize tableHeader = _tableHeader;
 @synthesize loginButton = _loginButton;
@@ -74,25 +78,10 @@ typedef enum {
 @synthesize validationResult = _validationResult;
 @synthesize status = _status;
 @synthesize provisionedCredential;
+@synthesize spinner;
+@synthesize resetButton;
 
 #pragma mark Encapsulation
-
-- (UIActivityIndicatorView *) spinner
-{
-    if(_spinner == nil){
-        _spinner = [[[UIActivityIndicatorView alloc] 
-                         initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite] autorelease];
-    }
-    return _spinner;
-}
-
-- (void) setSpinner:(UIActivityIndicatorView *)spinner
-{
-    if(_spinner){
-        [_spinner release];
-        _spinner = [spinner retain];
-    }
-}
 
 #pragma mark TableView Delegate
 
@@ -127,7 +116,7 @@ typedef enum {
     }
     
     if(indexPath.row == 0){
-        self.username = [UIStyler styleTextFieldForLoginTableWithTableCell:cell textIndicator:@"Usuario"]; //rc 1
+        self.username = [UIStyler styleTextFieldForLoginTableWithTableCell:cell textIndicator:@"Usuario"];
         [self.username setTag:USERNAME_TAG];
         [self.username setSpellCheckingType:UITextSpellCheckingTypeNo];
         
@@ -161,127 +150,127 @@ typedef enum {
 - (void) loginButtonAction:(id)sender
 {
     NSLog(@"user name count : %i %s" , [self.username retainCount], __PRETTY_FUNCTION__ );
-
+    
     [self.loginButton addSubview:self.spinner];
     [self.spinner setCenter:CGPointMake(self.loginButton.bounds.size.width - 30, self.loginButton.bounds.size.height / 2)];
     [self.spinner startAnimating];
     
     BOOL valid = NO;
-    NSMutableString *msg = nil;
+    NSString *msg = nil;
    
     
     if([self validate:self.username field:USER_NAME]){
         valid = NO;
-        [msg appendString:@"El usuario no puede estar vacío"];
+        msg = @"El usuario no puede estar vacío";
         EditedTextField = USER_NAME;
         
     }else if([self validate:self.password field:PASSWORD]) {
         valid = NO;
-        [msg appendString:@"El password no puede estar vacío"];
+        msg  = @"El password no puede estar vacío";
         EditedTextField = PASSWORD;
         
     }else {
         valid = YES;
+        [self.appDelegate setUserName:self.username.text];
+        [self.appDelegate setPassword:self.password.text];
     }
     
     if(valid){ //OKAY
 
-        [sender setTitle:@"Autenticando.." forState:UIControlStateNormal];
-
         VIPIssuer *issuer = [[VIPIssuer alloc] init];
+        [sender setTitle:@"Autenticando.." forState:UIControlStateNormal];        
         
-        [self performSelectorOnMainThread:@selector(tapAnyWhereAction:) withObject:self.username waitUntilDone:YES];
+        NSString *provisionedCredentialsPropertyListFilePath = [PersistenceFilesPathsProvider getVIPServicesSettingsFilePath];
         
-        dispatch_queue_t queue = dispatch_get_global_queue(
-                                                           DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+        NSDictionary *savedDictionary = [NSDictionary dictionaryWithContentsOfFile:provisionedCredentialsPropertyListFilePath];
         
-        dispatch_async(queue, ^{
+        NSString *savedCredentialId = [savedDictionary valueForKey:CREDENTIAL_ID];
+        NSString *savedSecret = [PersistenceFilesPathsProvider retrieveStoredSharedSecret];
+        
+        if(savedCredentialId && savedSecret){
             
             NSDictionary *activationAuthenticationResponse = [issuer
-                                                requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
-
-            self.activationCodeResponse = [activationAuthenticationResponse valueForKey:ACTIVATION_CODE_KEY];
+                                                              requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
             
-            if(self.activationCodeResponse){
-            
-                NSLog(@"Codigo de activacion :%@", self.activationCodeResponse);
+            if([[activationAuthenticationResponse valueForKey:ACTIVATION_CODE_KEY] isEqualToString:@"-1"]){
                 
-                Status *status = nil;
-                status = [self.appDelegate
-                          getCredentialStatusWithCredentialPrefix:CREDENTIAL_PREFIX activationCode:self.activationCodeResponse];
+                msg = @"Error de autenticación";
                 
-                self.status = status;
-                NSLog(@"Cred id %@",status.credential.credId);
-                NSLog(@"Credntial CreationTime %@", [NSDate dateWithTimeIntervalSince1970:status.credential.creationTime]);
-                NSLog(@"\nCredntial Shared secret %@", status.credential.sharedSecret);
-                if([status.statusCode isEqualToString:CREDENTIAL_PROVISIONED_SUCCESSSFULLY]){
-                    
-                    self.validationResult = [issuer requestValidationUsingCredential:self.appDelegate.credential];
-                    NSLog(@"validation Result : %@", self.validationResult);
-                    
-                    NSString *credentialRegistrationStatus = nil;
-                    credentialRegistrationStatus = [issuer requestRegisterCredential:self.status.credential];
-                    
-                    
-                    NSFileManager* fileManager = [NSFileManager defaultManager];
-                    NSString *provisionedCredentialsPropertyListFilePath = [PersistenceFilesPathsProvider getVIPServicesSettingsFilePath];
-                    [PersistenceFilesPathsProvider createDirectoryStructure];
-                    
-                    NSLog(@"file path => %@", provisionedCredentialsPropertyListFilePath);
-                    
-                    if(credentialRegistrationStatus){
-                        
-                        if ([fileManager fileExistsAtPath: provisionedCredentialsPropertyListFilePath] == YES) {
-                            
-                            NSMutableDictionary *savedDictionary = [NSMutableDictionary dictionaryWithContentsOfFile:provisionedCredentialsPropertyListFilePath];
-                            
-                            [savedDictionary removeAllObjects];
-                            
-                            NSMutableDictionary *newDict = [NSMutableDictionary dictionaryWithObject:self.status.credential.credId forKey:CREDENTIAL_ID];
-                            [savedDictionary addEntriesFromDictionary:newDict];
-                            
-                            if(savedDictionary == nil && newDict != nil){
-                                savedDictionary = newDict;
-                            }
-                            
-                            
-                            
-                            BOOL saved = [savedDictionary writeToFile:provisionedCredentialsPropertyListFilePath atomically:YES];
-                            
-                            if(saved){
-                                for(id key in savedDictionary){
-                                    NSLog(@"Saved key %@ value %@", key, [savedDictionary valueForKey:key]);
-                                }
-                                
-                            }else {
-                                NSLog(@"Credential failed to store");
-                                //TODO show error
-                            }
-                        }
-                    }
-                    
-                    self.statusMessage = [[UIAlertView alloc]
-                                          initWithTitle:@"VIP Issuer" message:msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
-                    
-                }
+                self.statusMessage = [[UIAlertView alloc]
+                                      initWithTitle:@"Error" message:msg delegate:self cancelButtonTitle:@"Corregir" otherButtonTitles:nil];
                 
-            }else {
-                NSLog(@"authentication failed!");
+                [self.statusMessage show];
+            }else { //valid user
+                [self.appDelegate setUserName:self.username.text];
+                [self.appDelegate setPassword:self.password.text];
+                
+                SecondViewController *scv = [[SecondViewController alloc]
+                                             initWithNibName:SECOND_VIEW_NIB_FILENAME bundle:nil];
+                
+                [self presentViewController:scv animated:YES completion:nil];
             }
             
-            [self.spinner stopAnimating];
-            [self.loginButton setTitle:@"Autenticado" forState:UIControlStateNormal];
-            [self showSecondViewController];
-        });
 
+
+//            Credential *cred = [[Credential alloc]init];
+//            [cred setCredId:savedCredentialId];
+//            [cred setSecurityCode:[cred getSecurityCodeWithActivatedCredential]];
+            
+//            NSLog(@"setCredId (secret) %@", cred.credId);
+//            NSLog(@"otp %@", cred.securityCode);
+//            
+//            NSLog(@"");
+            
+            
+        }else {
+            
+            [self performSelectorOnMainThread:@selector(tapAnyWhereAction:) withObject:self.username waitUntilDone:YES];
+            
+            NSDictionary *activationAuthenticationResponse = [issuer
+                                                              requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
+            
+            if([[activationAuthenticationResponse valueForKey:ACTIVATION_CODE_KEY] isEqualToString:@"-1"]){
+                
+                msg = @"Error de autenticación";
+                
+                self.statusMessage = [[UIAlertView alloc]
+                                      initWithTitle:@"Error" message:msg delegate:self cancelButtonTitle:@"Corregir" otherButtonTitles:nil];
+                
+                [self.statusMessage show];
+            }else { //valid user
+                [self.appDelegate setUserName:self.username.text];
+                [self.appDelegate setPassword:self.password.text];
+                [self showConfirmPersonalInformationViewController];
+            }
+        }
+        
     }else {
-        self.statusMessage = [[UIAlertView alloc] 
-                        initWithTitle:@"Error" message:msg delegate:self cancelButtonTitle:@"Corregir" otherButtonTitles:nil];        
-     
+        
+        msg = @"Verificar campos";
+        
+        self.statusMessage = [[UIAlertView alloc]
+                              initWithTitle:@"Advertencia" message:msg delegate:self cancelButtonTitle:@"Corregir" otherButtonTitles:nil];
+        
+        [self.statusMessage show];
+
+    }
+
+
+}
+
+- (IBAction)resetApplicationValues:(id)sender
+{
+    NSString* settingsFilePath = [PersistenceFilesPathsProvider getVIPServicesSettingsFilePath];
+    NSFileManager* fileManager = [NSFileManager defaultManager];
+    
+    NSMutableDictionary *prefs = [NSMutableDictionary dictionaryWithContentsOfFile:settingsFilePath];
+    
+    if(prefs != nil && [prefs count] > 0){
+        [prefs removeAllObjects];
     }
     
-    [self.statusMessage show];
-
+    [fileManager removeItemAtPath:settingsFilePath error:nil];
+    
 }
 
 #pragma mark ViewController lifecicle
@@ -301,7 +290,9 @@ typedef enum {
         
     appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
     
-    self.loginButton = [[UIButton alloc] initWithFrame:CGRectMake(33, 239, 256, 37)];
+    [self.logo setBackgroundColor:[UIColor colorWithPatternImage:[UIImage imageNamed:@"Default.png"]]];
+    
+    self.loginButton = [[UIButton alloc] initWithFrame:CGRectMake(33, 250, 256, 37)];
     [self.loginButton setTitle:@"Ingresar" forState:UIControlStateNormal];
     [self.loginButton setTitleColor:[UIColor grayColor] forState:UIControlStateHighlighted];
     UIColor *color = [UIColor colorWithRed:20.0f/255.0f green:87.0f/255.0f blue:121.0f/255.0f alpha:1.0];
@@ -317,7 +308,7 @@ typedef enum {
     [self.loginButton addTarget:self action:@selector(loginButtonAction:) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:self.loginButton];
 
-    [self.processStatusLabel setText:@""];
+    [self.processStatusLabel setText:@"adsfasdf"];
     [self.processStatusLabel setTextColor:[UIColor whiteColor]];
     [self.processStatusLabel setFont:[UIFont systemFontOfSize:12]];
 
@@ -342,6 +333,7 @@ typedef enum {
 {
     [_loginTable release];
     [_headerView release];
+    [_logo release];
     [_tableHeader release];
     [_loginButton release];
     [_username release];
@@ -422,7 +414,7 @@ typedef enum {
 
 - (void) textFieldDidBeginEditing:(UITextField *)textField
 {  
-    textField.text = self.username.text;
+    //textField.text = self.username.text;
     [textField setClearButtonMode:UITextFieldViewModeWhileEditing];
 }
 
@@ -515,9 +507,17 @@ typedef enum {
     return !valid;
 }
 
+- (void) showConfirmPersonalInformationViewController
+{
+    ConfirmPersonalInformationViewController *cpivc = [[ConfirmPersonalInformationViewController alloc]
+                                                       initWithNibName:@"ConfirmPersonalInformationViewController" bundle:nil];
+    
+    [self presentViewController:cpivc animated:YES completion:nil];
+}
+
 - (void) showSecondViewController
 {
-    SecondViewController *svc = [[SecondViewController alloc]initWithNibName:@"SecondViewController" bundle:nil];
+    SecondViewController *svc = [[SecondViewController alloc]initWithNibName:SECOND_VIEW_NIB_FILENAME bundle:nil];
     
     [self presentModalViewController:svc animated:YES];
     
@@ -535,6 +535,10 @@ typedef enum {
     [self.password setText:@""];
     [self.processStatusLabel setText:@""];
     [self.loginButton setTitle:@"Ingresar" forState:UIControlStateNormal];
+    
+    if(self.spinner != nil && [self.spinner isAnimating]){
+        [self.spinner stopAnimating];
+    }
     
     self.username.text = @"Usuario";
     self.username.textColor = [UIColor grayColor];

@@ -18,5 +18,6 @@
 - (NSString *)parseActivationCodeResponse: (NSData *) theData parseError:(NSError **)error;
 - (NSString *)parseCredentialValidationResponse:(NSData *) theData parseError: (NSError **)error;
 - (NSString *)parseCredentialRegistrationResponse:(NSData *) theData parseError: (NSError **)error;
+- (NSString *)parseHashRegistrationResponse:(NSData *) theData parseError: (NSError **)error;
 
 @end

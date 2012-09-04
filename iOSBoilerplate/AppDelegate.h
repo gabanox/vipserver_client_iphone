@@ -8,17 +8,21 @@
 
 #import <UIKit/UIKit.h>
 #import "Provisioner.h"
+#import "ConfirmPersonalInformationViewController.h"
 
-@interface AppDelegate : UIResponder <UIApplicationDelegate>
-
+@interface AppDelegate : UIResponder <UIApplicationDelegate> {
+    ConfirmPersonalInformationViewController *_confirmViewController;
+}
+	
 @property (strong, nonatomic) UIWindow *window;
 @property (strong, nonatomic) UIViewController *viewController;
-
+@property (strong, nonatomic) ConfirmPersonalInformationViewController *confirmViewController;
 @property (nonatomic,retain) NSString *credentialId;
 @property (nonatomic,retain) NSString *secret;
 @property NSTimeInterval creationTime;
 @property (nonatomic,retain) Credential *credential;
+@property (nonatomic, copy) NSString *userName;
+@property (nonatomic, copy) NSString *password;
 
 - (Status *) getCredentialStatusWithCredentialPrefix:(NSString *) prefix activationCode:(NSString *) activationCode;
-
 @end

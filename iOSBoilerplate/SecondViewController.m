@@ -9,6 +9,7 @@
 #import "SecondViewController.h"
 #import "PersistenceFilesPathsProvider.h"
 #import "Constants.h"
+#import "ViewController.h"
 
 @interface SecondViewController ()
 
@@ -62,7 +63,8 @@
     NSFileManager* fileManager = [NSFileManager defaultManager];
     NSString *provisionedCredentialsPropertyListFilePath = [PersistenceFilesPathsProvider getVIPServicesSettingsFilePath];
     
-    if ([fileManager fileExistsAtPath: provisionedCredentialsPropertyListFilePath] == YES) {
+    if(YES){
+//    if ([fileManager fileExistsAtPath: provisionedCredentialsPropertyListFilePath] == YES) {
      
         NSMutableDictionary *savedDictionary = [NSMutableDictionary dictionaryWithContentsOfFile:provisionedCredentialsPropertyListFilePath];
         
@@ -75,12 +77,12 @@
 
 -(void) viewWillAppear:(BOOL)animated
 {
-    self.view.backgroundColor = [[UIColor alloc] initWithPatternImage:[UIImage imageNamed:@"bg-red-320x480.png"]];
+    
 }
 
 -(void) logoutButtonAction: (id) sender
 {
-    [self dismissModalViewControllerAnimated:YES];
+    exit(0);
 }
 
 - (void)viewDidUnload
