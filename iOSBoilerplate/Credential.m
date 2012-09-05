@@ -36,10 +36,8 @@
 	NSString *securityCode = nil;
 	char response[10];
 	if(sharedSecret != nil){
-        
-        [PersistenceFilesPathsProvider storeSharedSecret:sharedSecret];
-
-		const char *temp = [sharedSecret UTF8String];
+    
+        const char *temp = [sharedSecret UTF8String];
 		int secretSize = strlen(temp);
 		ITEM input,output;
 		input.data = (unsigned char *)temp;

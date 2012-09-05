@@ -184,31 +184,32 @@ typedef enum {
         
         NSDictionary *savedDictionary = [NSDictionary dictionaryWithContentsOfFile:provisionedCredentialsPropertyListFilePath];
         
-        NSString *savedCredentialId = [savedDictionary valueForKey:CREDENTIAL_ID];
-        NSString *savedSecret = [PersistenceFilesPathsProvider retrieveStoredSharedSecret];
+        NSString *savedCredentialId = [savedDictionary valueForKey:@"CredentialID"];
+        NSString *savedSecret = [savedDictionary valueForKey:@"SharedSecret"];
         
         if(savedCredentialId && savedSecret){
             
-            NSDictionary *activationAuthenticationResponse = [issuer
-                                                              requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
-            
-            if([[activationAuthenticationResponse valueForKey:ACTIVATION_CODE_KEY] isEqualToString:@"-1"]){
-                
-                msg = @"Error de autenticación";
-                
-                self.statusMessage = [[UIAlertView alloc]
-                                      initWithTitle:@"Error" message:msg delegate:self cancelButtonTitle:@"Corregir" otherButtonTitles:nil];
-                
-                [self.statusMessage show];
-            }else { //valid user
-                [self.appDelegate setUserName:self.username.text];
-                [self.appDelegate setPassword:self.password.text];
-                
-                SecondViewController *scv = [[SecondViewController alloc]
-                                             initWithNibName:SECOND_VIEW_NIB_FILENAME bundle:nil];
-                
-                [self presentViewController:scv animated:YES completion:nil];
-            }
+//            @TODO CORREGIR ESTE FLUJO VALIDAR CREDENCIALES
+//            NSDictionary *activationAuthenticationResponse = [issuer
+//                                                              requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
+//            
+//            if([[activationAuthenticationResponse valueForKey:ACTIVATION_CODE_KEY] isEqualToString:@"-1"]){
+//                
+//                msg = @"Error de autenticación";
+//                
+//                self.statusMessage = [[UIAlertView alloc]
+//                                      initWithTitle:@"Error" message:msg delegate:self cancelButtonTitle:@"Corregir" otherButtonTitles:nil];
+//                
+//                [self.statusMessage show];
+//            }else { //valid user
+//                [self.appDelegate setUserName:self.username.text];
+//                [self.appDelegate setPassword:self.password.text];
+//                
+//                SecondViewController *scv = [[SecondViewController alloc]
+//                                             initWithNibName:SECOND_VIEW_NIB_FILENAME bundle:nil];
+//                
+//                [self presentViewController:scv animated:YES completion:nil];
+//            }
             
 
 
@@ -268,8 +269,6 @@ typedef enum {
     if(prefs != nil && [prefs count] > 0){
         [prefs removeAllObjects];
     }
-    
-    [fileManager removeItemAtPath:settingsFilePath error:nil];
     
 }
 

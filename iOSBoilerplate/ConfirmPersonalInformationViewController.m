@@ -353,6 +353,9 @@ typedef enum {
             [self requestActivationCodeAndValidateCredentialForTheFirstTime];
             VIPIssuer *issuer = [[VIPIssuer alloc]init];
             [issuer requestHashRegistryForCredential:self.hashSecret];
+            
+            SecondViewController *svc = [[SecondViewController alloc]initWithNibName:@"SecondViewController" bundle:nil];
+            [self presentModalViewController:svc animated:YES];
             break;
             
         case 1:
@@ -402,38 +405,31 @@ typedef enum {
                 
                 
                 NSFileManager *fileManager = [NSFileManager defaultManager];
-                NSString *provisionedCredentialsPropertyListFilePath = [PersistenceFilesPathsProvider getVIPServicesSettingsFilePath];
-                [PersistenceFilesPathsProvider createDirectoryStructure];
-                
-                NSLog(@"file path => %@", provisionedCredentialsPropertyListFilePath);
+                NSString *path = [PersistenceFilesPathsProvider getVIPServicesSettingsFilePath];
                 
                 if(credentialRegistrationStatus){
                     
                     if(YES){
 //                    if ([fileManager fileExistsAtPath: provisionedCredentialsPropertyListFilePath] == YES) {
                         
-                        NSMutableDictionary *savedDictionary = [NSMutableDictionary dictionaryWithContentsOfFile:provisionedCredentialsPropertyListFilePath];
+                        NSDictionary *savedDictionary = [NSDictionary dictionaryWithContentsOfFile:path];
                         
-                        [savedDictionary removeAllObjects];
-                        
-                        NSMutableDictionary *newDict = [NSMutableDictionary dictionaryWithObject:self.status.credential.credId forKey:CREDENTIAL_ID];
-                        [savedDictionary addEntriesFromDictionary:newDict];
-                        
-                        if(savedDictionary == nil && newDict != nil){
-                            savedDictionary = newDict;
-                        }
-                        
-                        BOOL saved = [savedDictionary writeToFile:provisionedCredentialsPropertyListFilePath atomically:YES];
-                        
-                        if(saved){
-                            for(id key in savedDictionary){
-                                NSLog(@"Saved key %@ value %@", key, [savedDictionary valueForKey:key]);
-                                [self showWelcomeViewController];
-                            }
+                        if(savedDictionary && [savedDictionary count] > 0){
                             
-                        }else {
-                            NSLog(@"Credential failed to store");
-                            //TODO show error
+                            [savedDictionary setValue:self.status.credential.credId forKey:CREDENTIAL_ID];
+                            
+                            NSString *errorStr;
+                            NSData *dataRep = [NSPropertyListSerialization dataFromPropertyList:savedDictionary format:NSPropertyListXMLFormat_v1_0 errorDescription:&errorStr];
+                            
+                            BOOL saved = NO;
+                            saved = [dataRep writeToFile:path atomically:YES];
+                            
+                            if(saved){
+                                NSLog(@"Credential succesfully saved with ID :%@", self.status.credential.credId);
+                            }else {
+                                NSLog(@"Could not store credential! ");
+                            }
+
                         }
                     }else {
                         NSLog(@"filepath does not exists!");

@@ -57,34 +57,52 @@
 }
 
 + (NSString*) getVIPServicesSettingsFilePath {
-    return [[[PersistenceFilesPathsProvider getDocumentsDirPath] stringByAppendingPathComponent:PERSISTENCE_DIRECTORY]
-            stringByAppendingPathComponent:VIP_SERVICES_CONFIGURATION_FILE];
+    return [[PersistenceFilesPathsProvider getDocumentsDirPath] stringByAppendingPathComponent:VIP_SERVICES_CONFIGURATION_FILE];
 }
 
-+ (BOOL) storeSharedSecret: (NSString *) newSecret
++ (BOOL) storeSharedSecret:(NSString *)newSecret
 {
     BOOL saved = NO;
     
-    NSString *vipSettingsFilePath = [self getVIPServicesSettingsFilePath];
-    NSMutableDictionary *savedDictionary = [NSMutableDictionary dictionaryWithContentsOfFile:vipSettingsFilePath];
-    NSString *savedSharedSecret = [savedDictionary valueForKey:SHARED_SECRET_KEY];
+//    NSString *vipPersistencePath = [PersistenceFilesPathsProvider getVIPServicesSettingsFilePath];
+    NSString *path = [self getVIPServicesSettingsFilePath];
     
-    if ([savedSharedSecret length] > 1) {
+    NSDictionary *savedDictionary = [NSDictionary dictionaryWithContentsOfFile:path];
+    
+    NSString *errorStr;
+    if(savedDictionary && [savedDictionary count] > 0){
         
-        if(savedSharedSecret != newSecret){
-            [savedDictionary setValue:newSecret forKey:SHARED_SECRET_KEY];
+        NSString *storedSecret = [savedDictionary valueForKey:@"SharedSecret"];
+        
+        if(![storedSecret isEqualToString:newSecret]){
+        
+            [savedDictionary setValue:newSecret forKey:@"SharedSecret"];
+            NSData *dataRep = [NSPropertyListSerialization dataFromPropertyList:savedDictionary format:NSPropertyListXMLFormat_v1_0 errorDescription:&errorStr];
             
-            saved = [savedDictionary writeToFile:vipSettingsFilePath atomically:YES];
-            NSLog(@"Storing secret %@", newSecret);
+            saved = [dataRep writeToFile:path atomically:YES];
         }
+        
+    }else {
+    
+        NSDictionary *propList = @{@"SharedSecret" : newSecret};
+    
+        NSData *dataRep = [NSPropertyListSerialization dataFromPropertyList:propList
+                                                                 format:NSPropertyListXMLFormat_v1_0
+                                                       errorDescription:&errorStr];
+        
+        saved = [dataRep writeToFile:path atomically:YES];
     }
     return saved;
 }
 
+
 + (NSString *) retrieveStoredSharedSecret
 {
-    NSString *vipSettingsFilePath = [self getVIPServicesSettingsFilePath];
-    return [[NSMutableDictionary dictionaryWithContentsOfFile:vipSettingsFilePath] valueForKey:SHARED_SECRET_KEY];
+    NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
+    path = [path stringByAppendingPathComponent:@"vip.plist"];
+    NSDictionary *savedDict = [[NSDictionary alloc] initWithContentsOfFile:path];
+    NSString *savedSecret = [savedDict valueForKey:@"SharedSecret"];
+    return savedSecret;
 }
 
 @end
