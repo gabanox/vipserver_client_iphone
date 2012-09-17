@@ -12,9 +12,11 @@
 #import "Constants.h"
 #import "PersistenceFilesPathsProvider.h"
 #import "SFHFKeychainUtils.h"
+#import "Reachability.h"
 
 @implementation AppDelegate
 
+@synthesize networkUnavailable;
 @synthesize window = _window;
 @synthesize viewController = _viewController;
 @synthesize confirmViewController;
@@ -23,12 +25,14 @@
 @synthesize creationTime;
 @synthesize credential;
 @synthesize userName, password;
+@synthesize connectivity;
 
 - (void)dealloc
 {
     [_window release];
     [_viewController release];
     [_confirmViewController release];
+    [_networkUnavailable release];
     [super dealloc];
 }
 
@@ -41,6 +45,22 @@
     self.window.rootViewController = self.viewController;
     self.window.backgroundColor = [UIColor whiteColor];
     [self.window makeKeyAndVisible];
+    
+    [[NSNotificationCenter defaultCenter]
+     addObserver: self
+     selector: @selector(reachabilityChanged:) name: kReachabilityChangedNotification object: nil];
+    
+    hostReach = [[Reachability reachabilityWithHostName: VIP_ISSUER_ENDPOINT_URL] retain];
+	[hostReach startNotifier];
+    
+    
+    internetReach = [[Reachability reachabilityForInternetConnection] retain];
+	[internetReach startNotifier];
+    
+    wifiReach = [[Reachability reachabilityForLocalWiFi] retain];
+	[wifiReach startNotifier];
+
+    
     return YES;
 }
 
@@ -123,6 +143,44 @@
 		NSLog(@"Credential id :%@",credential.credId);
 	}
 	NSLog(@"Security Code : %@",[self.credential getSecurityCode]);
+}
+
+#pragma mark Networking
+
+- (BOOL) connectedToInternet
+{
+    NSString *URLString = [NSString stringWithContentsOfURL:[NSURL URLWithString:VIP_ISSUER_ENDPOINT_URL]];
+    return ( URLString != NULL ) ? YES : NO;
+}
+
+- (void) reachabilityChanged: (NSNotification* )note
+{
+    if([self connectedToInternet]){
+        NSLog(@"Connected");
+    
+        for (UIView *view in [self.viewController.view subviews] ) { if (view.tag == 10 ) { [view removeFromSuperview]; } }
+        
+    }else{
+        
+        NSLog(@"Connection not available");
+        self.networkUnavailable = [[[UIView alloc] initWithFrame:[[UIScreen mainScreen] bounds]] autorelease];
+        self.networkUnavailable.opaque = NO;
+        self.networkUnavailable.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5f];
+        self.networkUnavailable.tag = 10;
+
+        UILabel *label = [[[UILabel alloc] init] autorelease];
+
+        [label setCenter:CGPointMake(self.networkUnavailable.frame.size.width /2 - 50,self.networkUnavailable.frame.size.height/2)];
+        
+        label.text = @"Sin conexion ..";
+        label.textColor = [UIColor whiteColor];
+        label.backgroundColor = [UIColor clearColor];
+        label.opaque = NO;
+        [label sizeToFit];
+        [self.networkUnavailable addSubview:label];
+        
+        [self.viewController.view addSubview:self.networkUnavailable];
+    }
 }
 
 @end

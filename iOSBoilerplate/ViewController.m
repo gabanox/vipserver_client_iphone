@@ -185,11 +185,31 @@ typedef enum {
         NSDictionary *savedDictionary = [NSDictionary dictionaryWithContentsOfFile:provisionedCredentialsPropertyListFilePath];
         
         NSString *savedCredentialId = [savedDictionary valueForKey:@"CredentialID"];
-        NSString *savedSecret = [savedDictionary valueForKey:@"SharedSecret"];
+//        NSString *savedSecret = [savedDictionary valueForKey:@"SharedSecret"];
         
-        if(savedCredentialId && savedSecret){
+//        if(savedCredentialId && savedSecret){
+        if(savedCredentialId){
             
-//            @TODO CORREGIR ESTE FLUJO VALIDAR CREDENCIALES
+            [self performSelectorOnMainThread:@selector(tapAnyWhereAction:) withObject:self.username waitUntilDone:YES];
+            
+            NSDictionary *activationAuthenticationResponse = [issuer
+                                                              requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
+            
+            if([[activationAuthenticationResponse valueForKey:ACTIVATION_CODE_KEY] isEqualToString:@"-1"]){
+                
+                msg = @"Error de autenticación";
+                
+                self.statusMessage = [[UIAlertView alloc]
+                                      initWithTitle:@"Error" message:msg delegate:self cancelButtonTitle:@"Corregir" otherButtonTitles:nil];
+                
+                [self.statusMessage show];
+            }else { //valid user
+                [self.appDelegate setUserName:self.username.text];
+                [self.appDelegate setPassword:self.password.text];
+                [self showSecondViewController];
+            }
+            
+            //@TODO CORREGIR ESTE FLUJO VALIDAR CREDENCIALES
 //            NSDictionary *activationAuthenticationResponse = [issuer
 //                                                              requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
 //            
@@ -210,18 +230,36 @@ typedef enum {
 //                
 //                [self presentViewController:scv animated:YES completion:nil];
 //            }
-            
-
-
+//            
+//
+//
 //            Credential *cred = [[Credential alloc]init];
 //            [cred setCredId:savedCredentialId];
-//            [cred setSecurityCode:[cred getSecurityCodeWithActivatedCredential]];
-            
+//            [cred setSecurityCode:[cred getSecurityCode]];
+//            
 //            NSLog(@"setCredId (secret) %@", cred.credId);
 //            NSLog(@"otp %@", cred.securityCode);
 //            
 //            NSLog(@"");
             
+//            [self performSelectorOnMainThread:@selector(tapAnyWhereAction:) withObject:self.username waitUntilDone:YES];
+//            
+//            NSDictionary *activationAuthenticationResponse = [issuer
+//                                                              requestActivationCodeUsingCredentials:self.username.text password:self.password.text];
+//            
+//            if([[activationAuthenticationResponse valueForKey:ACTIVATION_CODE_KEY] isEqualToString:@"-1"]){
+//                
+//                msg = @"Error de autenticación";
+//                
+//                self.statusMessage = [[UIAlertView alloc]
+//                                      initWithTitle:@"Error" message:msg delegate:self cancelButtonTitle:@"Corregir" otherButtonTitles:nil];
+//                
+//                [self.statusMessage show];
+//            }else { //valid user
+//                [self.appDelegate setUserName:self.username.text];
+//                [self.appDelegate setPassword:self.password.text];
+//                [self showSecondViewController];
+//            }
             
         }else {
             
@@ -269,7 +307,7 @@ typedef enum {
     if(prefs != nil && [prefs count] > 0){
         [prefs removeAllObjects];
     }
-    
+    [fileManager removeItemAtPath:settingsFilePath error:nil];
 }
 
 #pragma mark ViewController lifecicle
@@ -525,7 +563,7 @@ typedef enum {
         self.validationResult,
         [self.appDelegate.credential getSecurityCode] ];
     
-    [svc.sessionToken setText:loginMessage];
+    [svc.sessionToken setText:[self.appDelegate.credential getSecurityCode]];
 }
 
 - (void) resetState
